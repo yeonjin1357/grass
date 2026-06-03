@@ -62,16 +62,17 @@ for (let i = 0; i < N; i++) {
 ```
 
 - 높이 = `contributionCount`를 **sqrt 압축 + biome 3단계**(grass/shrub/tree, bare는 안 그림)로. `contributionLevel`은 상대 분위수라 부적합.
-- 지면: `icosahedronGeometry` + 고정 초록 `#2c6b3f`. **주력 언어색은 지면이 아니라 대기/고리 액센트로만.**
+- 지면: **`SphereGeometry`를 `terrainElevation(dir)` 노이즈로 CPU 변위**(useMemo 1회) + 고정 초록 `#3f7d44`. 식생도 동일 `terrainElevation`로 `surfaceRadius` 계산 → 표면에 정확히 심김(둥둥 X). 주력 언어색은 지면 아닌 대기/고리 액센트만.
 - 고리: `ringGeometry`, followers 스케일(followers>0일 때만), 적도 평면 회전.
 
 ## 인스턴싱 & wow
 
-- 식생은 biome별 drei `<Instances>` 3그룹(grass/shrub/tree, 전부 `coneGeometry`) + 고정 초록 지면. bare는 안 그림. 드로우콜 ≈ 6.
-- **블라썸**: 가장 바쁜 날(tree 상단, glow>0)만 `<Instances>`의 작은 구체 `meshBasicMaterial color #ffd86b toneMapped:false` → Bloom 발광.
-- **라이팅**: `hemisphereLight`(따뜻한 하늘+초록 대지) + 골든아워 key + 차가운 fill + ambient, ACESFilmic exposure 1.15, `<fog>`. (HDRI 금지 — 캡처 taint)
-- **Bloom**: `<EffectComposer><Bloom luminanceThreshold={0.75} intensity={1.1} mipmapBlur/></EffectComposer>` — 골드 블라썸만 발광.
-- `OrbitControls makeDefault autoRotate`, drei `<Stars>` 배경.
+- 식생 = **진짜 식물 인스턴싱**: 나무(`cylinderGeometry` 줄기 + `icosahedronGeometry(1,1)` 수관 blob), 덤불(blob), 잔디(`icosahedronGeometry(1,0)` tuft). bare는 안 그림. 셀 `seed`로 결정적 변주(높이/캐노피/틸트/색/yaw). 드로우콜 ≈ 8.
+- **발광 베리**: **전역 상위 ~6일(`GLOW_TOP_N`)만** `glow>0` → 식물 꼭대기에 작은 구체 `meshBasicMaterial #ffd86b toneMapped:false` → Bloom. (상대 티어로 베리 폭발하던 버그 수정)
+- **라이팅**: `hemisphereLight` + 골든아워 key(castShadow) + 차가운 fill + ambient, ACESFilmic exposure 1.05, `<fog>`, 프레넬 대기 셰이더.
+- **그림자**: plain `PCFSoftShadowMap`(데스크탑), 모바일 off. ⚠️ **`<Environment>` IBL·`<SoftShadows>`·`vertexColors`는 헤드리스(SwiftShader)에서 회색 렌더 → 제거**. 실 GPU에선 동작하므로 재추가 가능(재추가 시 실기기 확인 필수).
+- **Bloom + Vignette**: `<EffectComposer><Bloom 0.75/1.1 mipmapBlur/><Vignette/></EffectComposer>`.
+- `OrbitControls makeDefault autoRotate`, drei `<Stars>` 배경. (바다 시도했으나 행성을 덮어 제거)
 
 ## 공유 루프 (성장 엔진)
 
@@ -98,10 +99,10 @@ for (let i = 0; i < N; i++) {
 
 | GitHub 데이터 | 행성 비주얼 | 버전 |
 |---|---|---|
-| `contributionDays[].contributionCount` | **식생 단계 높이** (sqrt 압축: 0=bare 지면, 저=잔디, 중=덤불, 고=나무 cone) | v1 |
+| `contributionDays[].contributionCount` | **식생 단계 높이** (sqrt 압축: 0=bare 지면, 저=잔디, 중=덤불, 고=나무) | v1 |
 | count 비율 | 따뜻한 초록 캐노피 색(grass→shrub→tree 보간) | v1 |
-| 가장 바쁜 날(tree 상단, glow>0) | **골드 블라썸** `#ffd86b` 발광(Bloom) | v1 |
-| 주력 언어색 | **대기/고리 액센트만** (지면은 항상 초록 `#2c6b3f`) | v1 |
+| **전역 상위 ~6일** | **골드 발광 베리** `#ffd86b`(Bloom) | v1 |
+| 주력 언어색 | **대기/고리 액센트만** (지면은 항상 초록 `#3f7d44`) | v1 |
 | `totalContributions` | 행성 반경 | v1 |
 | `followers`/`repositories.totalCount` | 토성 고리 두께 | v1 |
 | `totalCommit/PR/Issue/Review` | 위성(달) 개수 | v1.5 |

@@ -8,9 +8,10 @@ Claude Code가 이 저장소에서 작업할 때 매 세션 읽는 운영 매뉴
 
 ## 상태
 
-- **Weekend 1+2 + "살아있는 초록 행성" 리디자인 완료 (2026-06-03).** Next.js 16 + R3F, 데이터 레이어, 행성 매핑, `/u/[username]`. 리디자인: 고정 초록 지면 + biome별 cone 식생(grass/shrub/tree, bare 안그림) + 골드 블라썸 + hemisphere 골든아워 라이팅 + 맥락 HUD. PNG 다운로드(`ShareBar`, preserveDrawingBuffer+canvas.toBlob), 동적 OG 카드, error/404. 검증: vitest 9/9 · build 통과 · `/u/torvalds` 200 · 없는유저 404 · OG PNG 1200×630 · **헤드리스 스샷 육안 확인(초록 식생 행성)**.
-- 열린 튜닝: 식생이 빽빽한 유저는 "가시공" 느낌 → cone 밀도/뾰족함은 취향 튜닝 여지. 라이팅/Bloom threshold도 실GPU 보고 조정.
-- 다음(v1 마감, 수동): README GIF + Vercel 배포 → v1.5(README 임베드 카드). `docs/ROADMAP.md`.
+- **"자연스러운 살아있는 세계" 리디자인 완료 (2026-06-03).** Next.js 16 + R3F. 행성: **노이즈 변위 지형**(`terrainElevation`) + **진짜 나무(줄기+수관 blob)·덤불·잔디 인스턴싱**(seed 결정적 변주) + **전역 상위 6일만 발광 베리** + 프레넬 대기 + followers 고리 + 골든아워 라이팅 + plain 그림자 + 비네트 + 맥락 HUD. PNG 다운로드(`ShareBar`), 동적 OG, error/404.
+- 검증: vitest 12/12 · build 통과 · `/u/torvalds`·`/u/yeonjin1357` 200 · 없는유저 404 · OG PNG · **헤드리스 스샷 육안(저활동=듬성한 진짜 작은 행성 ✓, 고활동=빽빽한 정글)**.
+- ⚠️ **헤드리스(SwiftShader)는 Environment IBL/SoftShadows/vertexColors를 못 그려 회색됨** → 일단 제거(plain 라이팅/그림자로 초록 안정 렌더). **실 GPU에선 IBL/소프트섀도 재추가로 더 사실적 가능 — 재추가 시 실기기 육안 확인 필수.**
+- 열린 튜닝(실 GPU 보고): 고활동 "브로콜리" 밀도·노출. 다음(수동): README GIF + Vercel 배포.
 
 ## 왜 "행성"인가 (다른 메타포 금지)
 

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { fibonacciSphere, buildPlanet } from "../lib/planet";
+import {
+  fibonacciSphere,
+  buildPlanet,
+  terrainElevation,
+  hash3,
+} from "../lib/planet";
 import type { GrassData, ContributionDay } from "../lib/github";
 
 function day(date: string, count: number): ContributionDay {
@@ -72,12 +77,12 @@ describe("buildPlanet", () => {
     }
   });
 
-  it("positions tiles at radius + height/2 along a unit surface normal", () => {
+  it("positions tiles at surfaceRadius + height/2 along a unit surface normal", () => {
     const planet = buildPlanet(fakeData([1, 10, 30]));
     for (const c of planet.cells) {
       expect(Math.hypot(...c.dir)).toBeCloseTo(1, 5);
       const posLen = Math.hypot(...c.position);
-      expect(posLen).toBeCloseTo(planet.radius + c.height / 2, 4);
+      expect(posLen).toBeCloseTo(c.surfaceRadius + c.height / 2, 4);
     }
   });
 
@@ -90,5 +95,49 @@ describe("buildPlanet", () => {
     const data = fakeData([1, 2]);
     data.topLanguages = [{ name: "Rust", color: "#dea584", size: 1000 }];
     expect(buildPlanet(data).coreColor).toBe("#dea584");
+  });
+});
+
+describe("terrain noise & determinism", () => {
+  it("terrainElevation is deterministic and bounded ~[-1,1]", () => {
+    for (let i = 0; i < 60; i++) {
+      const raw: [number, number, number] = [
+        Math.cos(i),
+        Math.sin(i * 1.3),
+        Math.sin(i * 0.7),
+      ];
+      const len = Math.hypot(...raw) || 1;
+      const dir: [number, number, number] = [
+        raw[0] / len,
+        raw[1] / len,
+        raw[2] / len,
+      ];
+      const a = terrainElevation(dir);
+      expect(a).toBe(terrainElevation(dir)); // deterministic
+      expect(a).toBeGreaterThanOrEqual(-1.05);
+      expect(a).toBeLessThanOrEqual(1.05);
+    }
+  });
+
+  it("surfaceRadius == radius + relief * elevation(dir)", () => {
+    const planet = buildPlanet(fakeData([1, 2, 3, 4, 5]));
+    for (const c of planet.cells) {
+      expect(c.surfaceRadius).toBeCloseTo(
+        planet.radius + planet.relief * terrainElevation(c.dir),
+        6,
+      );
+    }
+  });
+
+  it("cell.seed is in [0,1] and deterministic for its dir", () => {
+    const planet = buildPlanet(fakeData([1, 2, 3]));
+    for (const c of planet.cells) {
+      expect(c.seed).toBeGreaterThanOrEqual(0);
+      expect(c.seed).toBeLessThanOrEqual(1);
+      expect(c.seed).toBeCloseTo(
+        hash3(c.dir[0] * 12.9, c.dir[1] * 78.2, c.dir[2] * 37.7),
+        6,
+      );
+    }
   });
 });
