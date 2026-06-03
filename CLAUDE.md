@@ -8,9 +8,9 @@ Claude Code가 이 저장소에서 작업할 때 매 세션 읽는 운영 매뉴
 
 ## 상태
 
-- **Weekend 1 + 2 완료 (2026-06-03).** Next.js 16 + R3F, 데이터 레이어, 행성 매핑, `/u/[username]` 행성 씬 + **Bloom·발광 도시 불빛·별·토성 고리·언어색 코어**, **PNG 다운로드/링크 복사**(`ShareBar`), **동적 OG 카드**(`opengraph-image.tsx`, 2D Satori), error/404. 검증: vitest 8/8 · `npm run build` 통과 · 런타임 `/u/torvalds` 200 · 없는유저 404 · OG PNG 1200×630.
-- 다음(v1 마감, 수동): **README 결과 GIF + Vercel 배포**. 그 후 v1.5(README 임베드 카드). `docs/ROADMAP.md`.
-- 미확인: 브라우저에서 3D WebGL 육안 — `npm run dev` 후 `/u/<username>`.
+- **Weekend 1+2 + "살아있는 초록 행성" 리디자인 완료 (2026-06-03).** Next.js 16 + R3F, 데이터 레이어, 행성 매핑, `/u/[username]`. 리디자인: 고정 초록 지면 + biome별 cone 식생(grass/shrub/tree, bare 안그림) + 골드 블라썸 + hemisphere 골든아워 라이팅 + 맥락 HUD. PNG 다운로드(`ShareBar`, preserveDrawingBuffer+canvas.toBlob), 동적 OG 카드, error/404. 검증: vitest 9/9 · build 통과 · `/u/torvalds` 200 · 없는유저 404 · OG PNG 1200×630 · **헤드리스 스샷 육안 확인(초록 식생 행성)**.
+- 열린 튜닝: 식생이 빽빽한 유저는 "가시공" 느낌 → cone 밀도/뾰족함은 취향 튜닝 여지. 라이팅/Bloom threshold도 실GPU 보고 조정.
+- 다음(v1 마감, 수동): README GIF + Vercel 배포 → v1.5(README 임베드 카드). `docs/ROADMAP.md`.
 
 ## 왜 "행성"인가 (다른 메타포 금지)
 

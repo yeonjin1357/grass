@@ -40,3 +40,76 @@ a {
   border-top-color: #2ea043;
   animation: spin 0.8s linear infinite;
 }
+
+/* ── Planet HUD (캔버스 위 맥락 오버레이) ── */
+.hud-card {
+  position: absolute;
+  left: 20px;
+  bottom: 54px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(10, 22, 18, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.hud-user {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hud-stats {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.hud-lang {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.hud-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.hud-legend {
+  position: absolute;
+  left: 20px;
+  bottom: 18px;
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .hud-card {
+    left: 12px;
+    right: 12px;
+    bottom: 62px;
+  }
+  .hud-user {
+    font-size: 19px;
+  }
+  .hud-legend {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+  }
+}

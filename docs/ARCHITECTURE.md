@@ -61,26 +61,26 @@ for (let i = 0; i < N; i++) {
 }
 ```
 
-- 높이 = `contributionCount`(절대값) 정규화. `contributionLevel`은 상대 분위수라 절대 높이엔 부적합.
-- 코어: `icosahedronGeometry` + `meshStandardMaterial`, 주력 언어 색조.
-- 고리: `torusGeometry`, 팔로워/레포 수로 스케일, 적도 평면 회전.
+- 높이 = `contributionCount`를 **sqrt 압축 + biome 3단계**(grass/shrub/tree, bare는 안 그림)로. `contributionLevel`은 상대 분위수라 부적합.
+- 지면: `icosahedronGeometry` + 고정 초록 `#2c6b3f`. **주력 언어색은 지면이 아니라 대기/고리 액센트로만.**
+- 고리: `ringGeometry`, followers 스케일(followers>0일 때만), 적도 평면 회전.
 
 ## 인스턴싱 & wow
 
-- 365 타일을 개별 Mesh로 두면 드로우콜 폭발 → drei `<Instances limit={N}>` + 단일 geometry/material, 각 `<Instance>`에 position/rotation/scale/color. 드로우콜 1.
-- **불빛**: 바쁜 날(임계치 초과)만 두 번째 `<Instances>`의 작은 emissive 구체. `toneMapped={false}` + emissiveIntensity>1.
-- **Bloom**: `<EffectComposer><Bloom luminanceThreshold mipmapBlur /></EffectComposer>` — 불빛만 빛나게 threshold 튜닝. 이게 "프리미엄" 인상의 8할.
-- `OrbitControls makeDefault autoRotate`, `<Float>` 드리프트, `<ContactShadows>`.
+- 식생은 biome별 drei `<Instances>` 3그룹(grass/shrub/tree, 전부 `coneGeometry`) + 고정 초록 지면. bare는 안 그림. 드로우콜 ≈ 6.
+- **블라썸**: 가장 바쁜 날(tree 상단, glow>0)만 `<Instances>`의 작은 구체 `meshBasicMaterial color #ffd86b toneMapped:false` → Bloom 발광.
+- **라이팅**: `hemisphereLight`(따뜻한 하늘+초록 대지) + 골든아워 key + 차가운 fill + ambient, ACESFilmic exposure 1.15, `<fog>`. (HDRI 금지 — 캡처 taint)
+- **Bloom**: `<EffectComposer><Bloom luminanceThreshold={0.75} intensity={1.1} mipmapBlur/></EffectComposer>` — 골드 블라썸만 발광.
+- `OrbitControls makeDefault autoRotate`, drei `<Stars>` 배경.
 
 ## 공유 루프 (성장 엔진)
 
 두 산출물, 둘 다 핵심 (인터랙티브 3D만으론 트윗/README에 못 박혀 덜 퍼짐):
 
-1. **다운로드 PNG (고해상도, 라이브 3D)**
-   - `preserveDrawingBuffer` **OFF**.
-   - `<Canvas>` 내부 `Capturer`가 `useThree()`로 `{gl,scene,camera}` 받아 **같은 프레임**에 `gl.render(scene,camera)` → `gl.domElement.toBlob(cb,'image/png')`.
-   - `onCreated`/`await` 뒤엔 빈 이미지. `useThree`는 Canvas 내부에서만 → 외부 버튼은 `useImperativeHandle` ref로 브리지.
-   - 원격 HDRI(`<Environment preset>`)는 캔버스 taint → SecurityError. v1은 일반 라이트 + 절차적 배경으로 캡처 안전 확보.
+1. **다운로드 PNG (고해상도, 라이브 3D)** — `components/ShareBar.tsx`
+   - **Bloom(EffectComposer)을 쓰므로** `gl.render`로 직접 그리면 효과가 빠짐 → `<Canvas gl={{preserveDrawingBuffer:true}}>` + `document.querySelector('canvas').toBlob('image/png')`로 **합성된(블룸 포함) 마지막 프레임**을 캡처.
+   - 외부 버튼(ShareBar)이 canvas DOM을 직접 읽으므로 in-Canvas ref 브리지 불필요.
+   - 원격 HDRI(`<Environment preset>`)는 캔버스 taint → SecurityError. 라이트 + 절차적 배경(`<color>`/`<fog>`/`<Stars>`)으로 캡처 안전.
 
 2. **동적 OG 카드 (2D, 소셜 unfurl)**
    - Satori = flexbox 서브셋(grid·z-index·**WebGL 불가**) → 라이브 3D 못 그림.
@@ -98,10 +98,10 @@ for (let i = 0; i < N; i++) {
 
 | GitHub 데이터 | 행성 비주얼 | 버전 |
 |---|---|---|
-| `contributionDays[].contributionCount` | 표면 타일 높이(산맥) | v1 |
-| 자체 그라디언트(count) | 타일 색 | v1 |
-| 바쁜 날(임계치↑) | 발광 도시 불빛(Bloom) | v1 |
-| 주력 언어색(레포 집계) | 코어/대기 색조 | v1 |
+| `contributionDays[].contributionCount` | **식생 단계 높이** (sqrt 압축: 0=bare 지면, 저=잔디, 중=덤불, 고=나무 cone) | v1 |
+| count 비율 | 따뜻한 초록 캐노피 색(grass→shrub→tree 보간) | v1 |
+| 가장 바쁜 날(tree 상단, glow>0) | **골드 블라썸** `#ffd86b` 발광(Bloom) | v1 |
+| 주력 언어색 | **대기/고리 액센트만** (지면은 항상 초록 `#2c6b3f`) | v1 |
 | `totalContributions` | 행성 반경 | v1 |
 | `followers`/`repositories.totalCount` | 토성 고리 두께 | v1 |
 | `totalCommit/PR/Issue/Review` | 위성(달) 개수 | v1.5 |

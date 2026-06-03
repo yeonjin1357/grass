@@ -14,7 +14,7 @@ export default function Home() {
         textAlign: "center",
       }}
     >
-      <h1 style={{ fontSize: 52 }}>🪐 grass</h1>
+      <h1 style={{ fontSize: 52 }}>🌱 grass</h1>
       <p style={{ maxWidth: 460, opacity: 0.8, lineHeight: 1.6, fontSize: 18 }}>
         GitHub username을 넣으면, 1년 기여도(잔디)가 살아있는 행성이 됩니다.
       </p>

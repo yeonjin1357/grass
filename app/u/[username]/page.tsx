@@ -9,6 +9,7 @@ import {
 import { buildPlanet } from "@/lib/planet";
 import { PlanetCanvas } from "@/components/PlanetCanvas";
 import { ShareBar } from "@/components/ShareBar";
+import { PlanetHUD } from "@/components/PlanetHUD";
 
 type Params = { params: Promise<{ username: string }> };
 
@@ -65,25 +66,12 @@ export default async function UserPlanetPage({ params }: Params) {
             pointerEvents: "auto",
           }}
         >
-          🪐 grass
+          🌱 grass
         </Link>
         <ShareBar username={username} />
       </div>
 
-      {/* 하단 캡션 */}
-      <div
-        style={{
-          position: "absolute",
-          left: 20,
-          bottom: 18,
-          fontSize: 13,
-          opacity: 0.7,
-          pointerEvents: "none",
-        }}
-      >
-        @{username} · {planet.totalContributions.toLocaleString()} contributions
-        {planet.cells.length > 0 ? ` · ${planet.cells.length} days` : ""}
-      </div>
+      <PlanetHUD username={username} planet={planet} />
     </main>
   );
 }

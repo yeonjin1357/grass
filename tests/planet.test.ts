@@ -56,10 +56,19 @@ describe("buildPlanet", () => {
     expect(planet.cells).toHaveLength(3);
   });
 
-  it("clamps height to a positive minimum even for all-zero days", () => {
+  it("treats zero-contribution days as bare ground (not rendered)", () => {
     const planet = buildPlanet(fakeData([0, 0, 0]));
     for (const c of planet.cells) {
-      expect(c.height).toBeGreaterThanOrEqual(0.05);
+      expect(c.biome).toBe("bare");
+      expect(c.height).toBe(0);
+    }
+  });
+
+  it("gives active days a non-bare biome with positive height", () => {
+    const planet = buildPlanet(fakeData([1, 5, 30]));
+    for (const c of planet.cells) {
+      expect(c.biome).not.toBe("bare");
+      expect(c.height).toBeGreaterThan(0);
     }
   });
 
