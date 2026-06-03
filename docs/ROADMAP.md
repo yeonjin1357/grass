@@ -4,14 +4,16 @@
 
 ## v1 — 단일 행성 + 공유 (≈ 2주말)
 
-### Weekend 1 — 데이터 + 행성이 돈다
-- [ ] `create-next-app`(TS, App Router) + 버전 핀 설치 + `next.config.js`에 `transpilePackages:['three']`
-  - `three@0.184.0 @react-three/fiber@9.6.1 @react-three/drei@10.7.7 @react-three/postprocessing@3.0.4`
-- [ ] `.env.local`에 `GITHUB_TOKEN` (먼저 `gh api graphql`로 스모크 테스트 — `docs/GITHUB-API.md`)
-- [ ] `lib/github.ts` — 쿼리(`docs/query.graphql`) + 타입 + 에러 처리(`data.user===null`/`NOT_FOUND`) + 캐싱(revalidate 3600)
-- [ ] `lib/planet.ts` — weeks 평탄화 → `cells[{date,count,color}]`, Fibonacci 좌표 + 법선 회전 + 자체 색 그라디언트
-- [ ] `app/u/[username]/page.tsx`(Server, `dynamic(ssr:false)`) + `components/Scene.tsx`/`Planet.tsx`
-  - 코어 sphere + `<Instances>` 터레인 + `OrbitControls` → **회색이어도 돌면 1차 성공**
+### Weekend 1 — 데이터 + 행성이 돈다  ✅ 완료 (2026-06-03)
+- [x] 직접 스캐폴딩(비어있지 않은 dir라 create-next-app 대신) + 버전 핀 설치 + `next.config.ts`에 `transpilePackages:['three']`
+  - 확정: `next@16.2.7 react@19.2.7 three@0.184.0 @react-three/fiber@9.6.1 @react-three/drei@10.7.7 @react-three/postprocessing@3.0.4` (peer 충돌 0)
+- [x] 토큰: 로컬은 `GITHUB_TOKEN=$(gh auth token)`으로 처리(.env.local은 추후). 스모크로 검증.
+- [x] `lib/github.ts` — 쿼리 인라인 + 타입 + 에러(`NOT_FOUND`→`GitHubUserNotFoundError`) + fetch `next:{revalidate:3600}`. tsx 실행 가능(Next 전용 import 없음).
+- [x] `lib/planet.ts` — weeks 평탄화 → cells, `fibonacciSphere()` + 자체 색 그라디언트. 순수(three 미import) → 단위테스트 8/8.
+- [x] `app/u/[username]/page.tsx`(Server, await params) → `components/PlanetCanvas.tsx`(client, `dynamic(ssr:false)`) → `Scene.tsx`/`Planet.tsx`
+  - 코어 icosahedron + drei `<Instances>` 터레인(법선 정렬 quaternion) + `OrbitControls`
+- [x] 검증: 스모크(torvalds 3029기여 출력) · vitest 8/8 · `npm run build` 통과 · 런타임 `/u/torvalds` 200 · 없는유저 404
+- [ ] (미확인) 브라우저에서 실제 WebGL 렌더 육안 확인 — `npm run dev` 후 `/u/torvalds`
 
 ### Weekend 2 — wow + 공유 루프
 - [ ] `<EffectComposer><Bloom/>` + 발광 도시 불빛(`toneMapped:false`, intensity>1) + `<ContactShadows>` + 언어색 코어 + 토성 고리

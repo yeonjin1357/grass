@@ -8,8 +8,8 @@ Claude Code가 이 저장소에서 작업할 때 매 세션 읽는 운영 매뉴
 
 ## 상태
 
-- **현재: 문서 단계.** 코드 미작성. 이 문서 세트가 구현의 단일 기준(source of truth).
-- 다음: `docs/ROADMAP.md`의 Weekend 1부터 스캐폴딩.
+- **Weekend 1 완료 (2026-06-03).** Next.js 16 + R3F 스캐폴딩, `lib/github.ts` 데이터 레이어, `lib/planet.ts` 매핑(순수), `/u/[username]` 기본 행성 씬. 검증: 스모크(torvalds 잔디 출력) · vitest 8/8 · `npm run build` 통과 · 런타임 `/u/torvalds` 200 / 없는유저 404. (브라우저 WebGL 육안 확인은 미완 — `npm run dev`로 확인.)
+- 다음: **Weekend 2** — Bloom + 발광 도시 불빛 + 공유 루프(캡처 PNG + OG 카드). `docs/ROADMAP.md`.
 
 ## 왜 "행성"인가 (다른 메타포 금지)
 
