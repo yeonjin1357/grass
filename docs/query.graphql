@@ -1,0 +1,64 @@
+# grass — 검증된 GitHub GraphQL 쿼리 (cost 1)
+# POST https://api.github.com/graphql  ·  Authorization: bearer $GITHUB_TOKEN
+# 변수: { login: String!, from: DateTime!(UTC), to: DateTime!(UTC, from+≤1년) }
+# 상세: docs/GITHUB-API.md
+
+query GrassData($login: String!, $from: DateTime!, $to: DateTime!) {
+  rateLimit { cost remaining resetAt }
+  user(login: $login) {
+    name
+    login
+    avatarUrl
+    createdAt
+    followers { totalCount }
+
+    contributionsCollection(from: $from, to: $to) {
+      hasAnyContributions
+      restrictedContributionsCount
+      totalCommitContributions
+      totalIssueContributions
+      totalPullRequestContributions
+      totalPullRequestReviewContributions
+      totalRepositoryContributions
+      contributionYears
+      contributionCalendar {
+        totalContributions
+        isHalloween
+        colors
+        weeks {
+          firstDay
+          contributionDays {
+            date
+            weekday
+            contributionCount
+            contributionLevel
+            color
+          }
+        }
+      }
+    }
+
+    repositories(
+      ownerAffiliations: OWNER
+      isFork: false
+      privacy: PUBLIC
+      first: 6
+      orderBy: { field: STARGAZERS, direction: DESC }
+    ) {
+      totalCount
+      nodes {
+        name
+        stargazerCount
+        forkCount
+        primaryLanguage { name color }
+        languages(first: 5, orderBy: { field: SIZE, direction: DESC }) {
+          totalSize
+          edges {
+            size
+            node { name color }
+          }
+        }
+      }
+    }
+  }
+}
