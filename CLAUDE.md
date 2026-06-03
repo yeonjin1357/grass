@@ -8,8 +8,9 @@ Claude Code가 이 저장소에서 작업할 때 매 세션 읽는 운영 매뉴
 
 ## 상태
 
-- **Weekend 1 완료 (2026-06-03).** Next.js 16 + R3F 스캐폴딩, `lib/github.ts` 데이터 레이어, `lib/planet.ts` 매핑(순수), `/u/[username]` 기본 행성 씬. 검증: 스모크(torvalds 잔디 출력) · vitest 8/8 · `npm run build` 통과 · 런타임 `/u/torvalds` 200 / 없는유저 404. (브라우저 WebGL 육안 확인은 미완 — `npm run dev`로 확인.)
-- 다음: **Weekend 2** — Bloom + 발광 도시 불빛 + 공유 루프(캡처 PNG + OG 카드). `docs/ROADMAP.md`.
+- **Weekend 1 + 2 완료 (2026-06-03).** Next.js 16 + R3F, 데이터 레이어, 행성 매핑, `/u/[username]` 행성 씬 + **Bloom·발광 도시 불빛·별·토성 고리·언어색 코어**, **PNG 다운로드/링크 복사**(`ShareBar`), **동적 OG 카드**(`opengraph-image.tsx`, 2D Satori), error/404. 검증: vitest 8/8 · `npm run build` 통과 · 런타임 `/u/torvalds` 200 · 없는유저 404 · OG PNG 1200×630.
+- 다음(v1 마감, 수동): **README 결과 GIF + Vercel 배포**. 그 후 v1.5(README 임베드 카드). `docs/ROADMAP.md`.
+- 미확인: 브라우저에서 3D WebGL 육안 — `npm run dev` 후 `/u/<username>`.
 
 ## 왜 "행성"인가 (다른 메타포 금지)
 

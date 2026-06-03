@@ -15,13 +15,12 @@
 - [x] 검증: 스모크(torvalds 3029기여 출력) · vitest 8/8 · `npm run build` 통과 · 런타임 `/u/torvalds` 200 · 없는유저 404
 - [ ] (미확인) 브라우저에서 실제 WebGL 렌더 육안 확인 — `npm run dev` 후 `/u/torvalds`
 
-### Weekend 2 — wow + 공유 루프
-- [ ] `<EffectComposer><Bloom/>` + 발광 도시 불빛(`toneMapped:false`, intensity>1) + `<ContactShadows>` + 언어색 코어 + 토성 고리
-  - ⚠️ 캡처 안전: 원격 HDRI `<Environment preset>` 대신 일반 라이트 + 절차적 배경(CORS taint 방지)
-- [ ] `components/Capturer.tsx` + `ShareBar.tsx` — `gl.render`→`toBlob` 같은 프레임, ref 브리지 → 다운로드 PNG (빈 이미지 아닌지 확인)
-- [ ] `app/u/[username]/opengraph-image.tsx` — 2D Satori 카드(`params` await, Node 런타임, ttf ArrayBuffer, `display:flex`) + `generateMetadata`(og/twitter) + `robots.txt` 허용
-- [ ] `app/u/[username]/not-found.tsx` + 랜딩 `app/page.tsx`(username 입력)
-- [ ] 모바일/로딩/에러 상태, README 결과 GIF, Vercel 배포
+### Weekend 2 — wow + 공유 루프  ✅ 대부분 완료 (2026-06-03)
+- [x] EffectComposer+Bloom + 발광 도시 불빛(meshBasicMaterial `toneMapped:false`) + drei Stars(절차적, 캡처 안전) + 언어색 코어/대기 + 토성 고리(followers 스케일). ContactShadows는 우주 부유 행성이라 생략.
+- [x] `ShareBar.tsx` — 캡처는 `preserveDrawingBuffer:true` + `canvas.toBlob`(Bloom 합성 프레임 포함, gl.render 우회). 다운로드 PNG + 링크 복사.
+- [x] `opengraph-image.tsx` — 2D Satori 카드(params await, Node 런타임, DejaVu ttf). ⚠️ 텍스트+표현식 혼합 div는 자식 2개로 셈 → 템플릿 문자열 단일자식. `generateMetadata`(og/twitter) + `app/robots.ts`. 검증: PNG 1200×630 (127KB).
+- [x] `error.tsx`(세그먼트 에러 바운더리) + 랜딩/not-found(W1). loading.tsx는 스트리밍 소프트404(200) 유발 → 제거(진짜 404 유지, 로딩은 클라 Scene 스피너).
+- [ ] (남음) README 결과 GIF, Vercel 배포 — 브라우저 캡처 + Vercel 계정 필요(수동 단계)
 
 ### v1 완료 검증 (`docs/ARCHITECTURE.md` + CLAUDE.md 기준)
 1. `/u/torvalds` 행성 회전 · `/u/<없는유저>` 404 · 0-기여 계정 어두운 행성(크래시 X)

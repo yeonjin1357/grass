@@ -22,6 +22,8 @@ export interface PlanetCell {
   tileSize: number;
   /** 자체 그라디언트 색(헥스, 테마 비의존). */
   color: string;
+  /** 0..1 정규화 활동도. 도시 불빛(발광) 세기/표시 여부에 사용. */
+  glow: number;
 }
 
 export interface PlanetModel {
@@ -29,6 +31,7 @@ export interface PlanetModel {
   /** 코어/대기 색 — 주력 언어색에서. */
   coreColor: string;
   totalContributions: number;
+  followers: number;
   cells: PlanetCell[];
 }
 
@@ -104,6 +107,7 @@ export function buildPlanet(data: GrassData): PlanetModel {
       height,
       tileSize,
       color: colorForRatio(ratio),
+      glow: ratio,
     };
   });
 
@@ -113,6 +117,7 @@ export function buildPlanet(data: GrassData): PlanetModel {
     radius,
     coreColor,
     totalContributions: data.totalContributions,
+    followers: data.followers,
     cells,
   };
 }
