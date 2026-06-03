@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { Instances, Instance } from "@react-three/drei";
+import { useMemo, useState } from "react";
+import { Instances, Instance, Html } from "@react-three/drei";
+import type { ThreeEvent } from "@react-three/fiber";
 import {
   Vector3,
   Quaternion,
@@ -47,9 +48,35 @@ export function Planet({
 }) {
   const ts = planet.cells[0]?.tileSize ?? planet.radius * 0.1;
 
+  // ── 호버 툴팁(날짜+커밋수) ──
+  const [hover, setHover] = useState<{
+    date: string;
+    count: number;
+    tip: Tuple3;
+  } | null>(null);
+
+  const onMove =
+    (arr: { date: string; count: number; tip: Tuple3 }[]) =>
+    (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      const it = e.instanceId != null ? arr[e.instanceId] : undefined;
+      if (!it) return;
+      document.body.style.cursor = "pointer";
+      // 같은 식물 위 이동이면 재렌더 안 함(date 유일).
+      setHover((prev) =>
+        prev && prev.date === it.date
+          ? prev
+          : { date: it.date, count: it.count, tip: it.tip },
+      );
+    };
+  const onOut = () => {
+    setHover(null);
+    document.body.style.cursor = "auto";
+  };
+
   // ── 변위 지형 (한 번만) ──
   const ground = useMemo(() => {
-    const seg = isMobile ? 96 : 140;
+    const seg = isMobile ? 64 : 96;
     const g = new SphereGeometry(planet.radius, seg, seg);
     const pos = g.attributes.position as BufferAttribute;
     const v = new Vector3();
@@ -79,7 +106,17 @@ export function Planet({
             .clone()
             .add(up.clone().multiplyScalar(trunkH + canopyR * 0.7));
           const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, trunkPos, canopyPos, trunkH, canopyR, col, glow: c.glow, seed: c.seed };
+          return {
+            q,
+            trunkPos,
+            canopyPos,
+            trunkH,
+            canopyR,
+            col,
+            date: c.date,
+            count: c.count,
+            tip: tup(canopyPos),
+          };
         }),
     [planet],
   );
@@ -112,7 +149,7 @@ export function Planet({
           const r = c.height * 0.46 * (0.85 + 0.3 * jit(c.seed, 0.23));
           const pos = base.clone().add(up.clone().multiplyScalar(r * 0.55));
           const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, pos, r, col };
+          return { q, pos, r, col, date: c.date, count: c.count, tip: tup(pos) };
         }),
     [planet],
   );
@@ -127,7 +164,7 @@ export function Planet({
           const h = c.height * (0.85 + 0.3 * jit(c.seed, 0.11));
           const pos = base.clone().add(up.clone().multiplyScalar(h / 2));
           const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, pos, h, col };
+          return { q, pos, h, col, date: c.date, count: c.count, tip: tup(pos) };
         }),
     [planet],
   );
@@ -172,7 +209,13 @@ export function Planet({
 
       {/* 나무 수관 */}
       {trees.length > 0 && (
-        <Instances limit={trees.length} range={trees.length} castShadow>
+        <Instances
+          limit={trees.length}
+          range={trees.length}
+          castShadow
+          onPointerMove={onMove(trees)}
+          onPointerOut={onOut}
+        >
           <icosahedronGeometry args={[1, 1]} />
           <meshStandardMaterial roughness={0.7} metalness={0} />
           {trees.map((t, i) => (
@@ -189,7 +232,13 @@ export function Planet({
 
       {/* 덤불 */}
       {shrubs.length > 0 && (
-        <Instances limit={shrubs.length} range={shrubs.length} castShadow>
+        <Instances
+          limit={shrubs.length}
+          range={shrubs.length}
+          castShadow
+          onPointerMove={onMove(shrubs)}
+          onPointerOut={onOut}
+        >
           <icosahedronGeometry args={[1, 1]} />
           <meshStandardMaterial roughness={0.75} metalness={0} />
           {shrubs.map((s, i) => (
@@ -206,7 +255,12 @@ export function Planet({
 
       {/* 잔디 */}
       {grass.length > 0 && (
-        <Instances limit={grass.length} range={grass.length}>
+        <Instances
+          limit={grass.length}
+          range={grass.length}
+          onPointerMove={onMove(grass)}
+          onPointerOut={onOut}
+        >
           <icosahedronGeometry args={[1, 0]} />
           <meshStandardMaterial roughness={0.85} metalness={0} />
           {grass.map((g, i) => (
@@ -244,6 +298,26 @@ export function Planet({
             depthWrite={false}
           />
         </mesh>
+      )}
+
+      {/* 호버 툴팁: 정확한 날짜 + 커밋수 */}
+      {hover && (
+        <Html position={hover.tip} center style={{ pointerEvents: "none" }} zIndexRange={[100, 0]}>
+          <div
+            style={{
+              transform: "translateY(-16px)",
+              background: "rgba(10,22,18,0.9)",
+              color: "#e8eaf0",
+              border: "1px solid rgba(255,255,255,0.12)",
+              padding: "4px 9px",
+              borderRadius: 8,
+              fontSize: 12,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {hover.date} · {hover.count} contribution{hover.count === 1 ? "" : "s"}
+          </div>
+        </Html>
       )}
     </group>
   );

@@ -3,8 +3,7 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
-import { ACESFilmicToneMapping, PCFSoftShadowMap } from "three";
+import { ACESFilmicToneMapping } from "three";
 import type { PlanetModel } from "@/lib/planet";
 import { Planet } from "./Planet";
 
@@ -21,8 +20,7 @@ export default function Scene({ planet }: { planet: PlanetModel }) {
     <Canvas
       camera={{ position: [0, R * 0.5, R * 4.2], fov: 40 }}
       dpr={isMobile ? [1, 1.5] : [1, 2]}
-      shadows={isMobile ? false : { type: PCFSoftShadowMap }}
-      // Bloom 합성 프레임 캡처용 버퍼 보존
+      // 캡처용 버퍼 보존. postprocessing 없을 땐 안전(검은 깜빡임 원인은 EffectComposer였고 제거함).
       gl={{ preserveDrawingBuffer: true, antialias: true }}
       onCreated={({ gl }) => {
         gl.toneMapping = ACESFilmicToneMapping;
@@ -37,16 +35,6 @@ export default function Scene({ planet }: { planet: PlanetModel }) {
         position={[5, 7, 4]}
         intensity={isMobile ? 2.6 : 2.2}
         color="#ffe9c2"
-        castShadow={!isMobile}
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-near={1}
-        shadow-camera-far={R * 8}
-        shadow-camera-left={-R * 1.6}
-        shadow-camera-right={R * 1.6}
-        shadow-camera-top={R * 1.6}
-        shadow-camera-bottom={-R * 1.6}
-        shadow-bias={-0.0005}
-        shadow-normalBias={0.04}
       />
       <directionalLight position={[-6, 1, -4]} intensity={0.5} color="#9fc7ff" />
       <ambientLight intensity={0.32} />
@@ -71,16 +59,7 @@ export default function Scene({ planet }: { planet: PlanetModel }) {
         minDistance={R * 1.8}
         maxDistance={R * 9}
       />
-
-      <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.75}
-          luminanceSmoothing={0.2}
-          intensity={1.1}
-          mipmapBlur
-        />
-        <Vignette offset={0.25} darkness={0.6} eskil={false} />
-      </EffectComposer>
+      {/* [플리커 진단] EffectComposer(Bloom+Vignette) 일시 제거 — postprocessing이 범인인지 확인 */}
     </Canvas>
   );
 }

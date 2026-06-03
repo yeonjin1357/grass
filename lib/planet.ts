@@ -63,13 +63,6 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
 
-function gcd(a: number, b: number): number {
-  while (b) {
-    [a, b] = [b, a % b];
-  }
-  return a;
-}
-
 function lerpHex(a: string, b: string, t: number): string {
   const pa = parseInt(a.slice(1), 16);
   const pb = parseInt(b.slice(1), 16);
@@ -166,13 +159,6 @@ function radiusFor(total: number): number {
   return clamp(2 + Math.log10(1 + total) * 0.7, 2, 5);
 }
 
-function coprimeStride(n: number): number {
-  if (n <= 2) return 1;
-  let s = Math.max(1, Math.round(n * 0.382));
-  while (gcd(s, n) !== 1) s++;
-  return s;
-}
-
 /** 잔디 데이터를 "자연스러운 세계" 모델로 변환. */
 export function buildPlanet(data: GrassData): PlanetModel {
   const days = data.days;
@@ -194,11 +180,12 @@ export function buildPlanet(data: GrassData): PlanetModel {
   const tileSize =
     n > 0 ? Math.sqrt((4 * Math.PI * radius * radius) / n) * 0.55 : radius * 0.1;
 
+  // 연대순 그대로 Fibonacci sphere에 매핑 → 위도 = 시간축(북극=가장 오래전 → 남극=최근).
+  // (셔플 금지: 시간 클러스터링이 곧 "언제 바빴나" 신호다.)
   const dirs = fibonacciSphere(n);
-  const stride = coprimeStride(n);
 
   const cells: PlanetCell[] = days.map((day, i) => {
-    const dir = dirs[(i * stride) % Math.max(1, n)];
+    const dir = dirs[i];
     const { biome, frac } = tierFor(day.contributionCount, maxCount);
 
     let height = 0;

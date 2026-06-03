@@ -96,6 +96,12 @@ describe("buildPlanet", () => {
     data.topLanguages = [{ name: "Rust", color: "#dea584", size: 1000 }];
     expect(buildPlanet(data).coreColor).toBe("#dea584");
   });
+
+  it("keeps cells in chronological order (위도=시간축)", () => {
+    const planet = buildPlanet(fakeData([1, 2, 3, 4, 5]));
+    const dates = planet.cells.map((c) => c.date);
+    expect(dates).toEqual([...dates].sort());
+  });
 });
 
 describe("terrain noise & determinism", () => {
