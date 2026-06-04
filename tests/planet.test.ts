@@ -104,6 +104,31 @@ describe("buildPlanet", () => {
   });
 });
 
+describe("magnitude (절대 규모)", () => {
+  it("magnitude·radius·moonCount grow with total contributions", () => {
+    const small = buildPlanet(fakeData([1, 1, 1]));
+    const big = buildPlanet(fakeData(Array(60).fill(60)));
+    expect(big.magnitude).toBeGreaterThan(small.magnitude);
+    expect(big.radius).toBeGreaterThan(small.radius);
+    expect(big.moonCount).toBeGreaterThanOrEqual(small.moonCount);
+    expect(big.magnitude).toBeLessThanOrEqual(1);
+    expect(small.magnitude).toBeGreaterThanOrEqual(0);
+  });
+
+  it("marks only the busiest (tree-tier) days as emergent 거목", () => {
+    const planet = buildPlanet(fakeData([1, 1, 1, 1, 1, 1, 1, 1, 1, 99]));
+    const peak = planet.cells.find((c) => c.count === 99)!;
+    expect(peak.emergent).toBe(true);
+    expect(planet.cells.filter((c) => c.count === 1).every((c) => !c.emergent)).toBe(
+      true,
+    );
+  });
+
+  it("assigns a tier name by total", () => {
+    expect(buildPlanet(fakeData([1, 1])).tierName).toBe("새싹 행성");
+  });
+});
+
 describe("terrain noise & determinism", () => {
   it("terrainElevation is deterministic and bounded ~[-1,1]", () => {
     for (let i = 0; i < 60; i++) {

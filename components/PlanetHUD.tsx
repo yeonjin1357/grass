@@ -16,8 +16,10 @@ export function PlanetHUD({
       <div className="hud-card">
         <div className="hud-user">@{username}</div>
         <div className="hud-stats">
-          {planet.totalContributions.toLocaleString()} contributions ·{" "}
-          {planet.dayCount} days
+          {planet.totalContributions.toLocaleString()} contributions
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.95 }}>
+          🪐 {planet.tierName}
         </div>
         {planet.topLanguageName && (
           <div className="hud-lang">

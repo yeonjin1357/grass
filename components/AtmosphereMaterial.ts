@@ -12,8 +12,8 @@ export function createAtmosphereMaterial(colorHex: string): ShaderMaterial {
     side: BackSide,
     uniforms: {
       uColor: { value: new Color(colorHex) },
-      uIntensity: { value: 0.9 },
-      uPower: { value: 3.0 },
+      uIntensity: { value: 0.5 },
+      uPower: { value: 4.0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vN;

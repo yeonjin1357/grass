@@ -30,6 +30,8 @@ export interface PlanetCell {
   biome: Biome;
   /** 0..1 결정적 시드 → 인스턴스 변주(높이/틸트/색/yaw). */
   seed: number;
+  /** 가장 바쁜 상위 N일 → 우뚝 솟은 거목(랜드마크). */
+  emergent: boolean;
 }
 
 export interface PlanetModel {
@@ -43,6 +45,12 @@ export interface PlanetModel {
   busiestCount: number;
   dayCount: number;
   followers: number;
+  /** 0..1 절대 규모 → 행성의 웅장함(반경·달·고리). */
+  magnitude: number;
+  /** 궤도 도는 달 개수(0~4). 절대 규모. */
+  moonCount: number;
+  /** 규모 칭호(HUD 자랑용). */
+  tierName: string;
   cells: PlanetCell[];
 }
 
@@ -152,18 +160,43 @@ export function fibonacciSphere(n: number): Vec3[] {
   return pts;
 }
 
-function radiusFor(total: number): number {
-  return clamp(2 + Math.log10(1 + total) * 0.7, 2, 5);
+/** 절대 기여량 → 0..1 웅장함. 저~중 구간을 펼치도록 0.6 거듭제곱(헤비/경소 확연히 구분). */
+function magnitudeFor(total: number): number {
+  return clamp(Math.pow(total / 4000, 0.6), 0, 1);
+}
+
+function tierNameFor(total: number): string {
+  if (total < 300) return "새싹 행성";
+  if (total < 1500) return "푸른 행성";
+  if (total < 4000) return "번성하는 행성";
+  return "전설의 생태계";
 }
 
 /** 잔디 데이터를 "자연스러운 세계" 모델로 변환. */
 export function buildPlanet(data: GrassData): PlanetModel {
   const days = data.days;
   const n = days.length;
-  const radius = radiusFor(data.totalContributions);
+  const total = data.totalContributions;
+
+  // 절대 규모 → 행성의 웅장함
+  const magnitude = magnitudeFor(total);
+  const radius = 2.2 + magnitude * 3.3; // ≈2.2~5.5 (헤비=큰 행성)
+  const moonCount = Math.min(4, Math.floor(magnitude * 4.5));
+  const tierName = tierNameFor(total);
   const relief = radius * RELIEF_FRACTION;
 
   const maxCount = days.reduce((m, d) => Math.max(m, d.contributionCount), 0);
+
+  // emergent(거목): 가장 바쁜 상위 N일 → 우뚝 솟아 균일함을 깨고 피크를 보여줌
+  const activeDesc = days
+    .map((d) => d.contributionCount)
+    .filter((c) => c > 0)
+    .sort((a, b) => b - a);
+  const emergentN = clamp(Math.round(activeDesc.length * 0.04), 3, 14);
+  const emergentThreshold =
+    activeDesc.length === 0
+      ? Infinity
+      : activeDesc[Math.min(emergentN - 1, activeDesc.length - 1)];
 
   const tileSize =
     n > 0 ? Math.sqrt((4 * Math.PI * radius * radius) / n) * 0.55 : radius * 0.1;
@@ -193,6 +226,8 @@ export function buildPlanet(data: GrassData): PlanetModel {
     const dist = surfaceRadius + height / 2;
     const position: Vec3 = [dir[0] * dist, dir[1] * dist, dir[2] * dist];
     const seed = hash3(dir[0] * 12.9, dir[1] * 78.2, dir[2] * 37.7);
+    const emergent =
+      biome === "tree" && day.contributionCount >= emergentThreshold;
 
     return {
       date: day.date,
@@ -205,6 +240,7 @@ export function buildPlanet(data: GrassData): PlanetModel {
       color,
       biome,
       seed,
+      emergent,
     };
   });
 
@@ -217,6 +253,9 @@ export function buildPlanet(data: GrassData): PlanetModel {
     busiestCount: maxCount,
     dayCount: n,
     followers: data.followers,
+    magnitude,
+    moonCount,
+    tierName,
     cells,
   };
 }
