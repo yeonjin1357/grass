@@ -55,7 +55,7 @@ export interface PlanetModel {
 }
 
 const DEFAULT_ACCENT = "#3b82f6";
-const RELIEF_FRACTION = 0.13;
+const RELIEF_FRACTION = 0.12;
 
 const GRASS_LO = "#7bb661";
 const GRASS_HI = "#9fd85a";
@@ -211,14 +211,15 @@ export function buildPlanet(data: GrassData): PlanetModel {
 
     let height = 0;
     let color = GRASS_LO;
+    // 크기 편차 완만(응집된 숲): 대부분 0.18~0.52*radius에 모이고 잔디만 약간 작게
     if (biome === "grass") {
-      height = radius * (0.05 + 0.13 * frac);
+      height = radius * (0.1 + 0.06 * frac);
       color = lerpHex(GRASS_LO, GRASS_HI, frac);
     } else if (biome === "shrub") {
-      height = radius * (0.18 + 0.24 * frac);
+      height = radius * (0.18 + 0.12 * frac);
       color = lerpHex(SHRUB_LO, SHRUB_HI, frac);
     } else if (biome === "tree") {
-      height = radius * (0.42 + 0.53 * frac);
+      height = radius * (0.32 + 0.2 * frac);
       color = lerpHex(TREE_LO, TREE_HI, frac);
     }
 

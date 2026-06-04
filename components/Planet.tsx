@@ -1,18 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { Instances, Instance } from "@react-three/drei";
 import {
   Vector3,
   Quaternion,
   Euler,
   Color,
-  SphereGeometry,
+  IcosahedronGeometry,
   BufferAttribute,
   DoubleSide,
 } from "three";
 import { terrainElevation, type PlanetCell, type PlanetModel } from "@/lib/planet";
 import { createAtmosphereMaterial } from "./AtmosphereMaterial";
+import { useNatureModels, POOLS, type SubMesh } from "./useNatureModels";
 
 const UP = new Vector3(0, 1, 0);
 
@@ -30,17 +31,96 @@ function smoothstep(e0: number, e1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** 한 식물의 좌표계: 표면 법선 정렬 + 결정적 틸트/yaw. */
-function plantFrame(c: PlanetCell): { q: Quaternion; up: Vector3; base: Vector3 } {
+/** 한 식물의 좌표계: 밑면=표면점, +Y를 표면 법선에 정렬 + 결정적 틸트/yaw. */
+function plantFrame(c: PlanetCell): { q: Quaternion; base: Vector3 } {
   const dir = new Vector3(c.dir[0], c.dir[1], c.dir[2]);
   const qAlign = new Quaternion().setFromUnitVectors(UP, dir.clone());
-  const tilt = (jit(c.seed, 0.37) - 0.5) * 0.35;
+  const tilt = (jit(c.seed, 0.37) - 0.5) * 0.1; // 숲은 곧게(±0.05rad)
   const yaw = jit(c.seed, 0.71) * Math.PI * 2;
   const qLocal = new Quaternion().setFromEuler(new Euler(tilt, yaw, 0));
   const q = qAlign.multiply(qLocal);
-  const up = UP.clone().applyQuaternion(q);
   const base = dir.multiplyScalar(c.surfaceRadius);
-  return { q, up, base };
+  return { q, base };
+}
+
+interface PlantItem {
+  pos: Tuple3;
+  q: Quaternion;
+  s: number;
+}
+
+function plantItem(c: PlanetCell, scale: number): PlantItem {
+  const { q, base } = plantFrame(c);
+  // seed로 크기 ±15% 변주
+  const s = scale * (0.85 + 0.3 * jit(c.seed, 0.11));
+  return { pos: tup(base), q, s };
+}
+
+/** 한 모델 타입(서브메시 N개)을 아이템들 위에 인스턴싱. */
+function ModelLayer({ submeshes, items }: { submeshes: SubMesh[]; items: PlantItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      {submeshes.map((sm, mi) => (
+        <Instances
+          key={mi}
+          limit={items.length}
+          range={items.length}
+          geometry={sm.geometry}
+          material={sm.material}
+          castShadow
+        >
+          {items.map((it, i) => (
+            <Instance key={i} position={it.pos} quaternion={it.q} scale={it.s} />
+          ))}
+        </Instances>
+      ))}
+    </>
+  );
+}
+
+/** 풀에서 셀 seed로 결정적으로 모델 하나 선택. */
+function pick(pool: readonly string[], seed: number): string {
+  return pool[Math.floor(jit(seed, 0.91) * pool.length) % pool.length];
+}
+
+/** 식생 — 진짜 CC0 모델 인스턴싱, biome별 풀에서 다양하게 (useGLTF → Suspense). */
+function Vegetation({ planet }: { planet: PlanetModel }) {
+  const models = useNatureModels();
+
+  // 모델명 → 인스턴스 아이템들 (셀마다 풀에서 골라 그룹핑)
+  const layers = useMemo(() => {
+    const groups = new Map<string, PlantItem[]>();
+    const add = (name: string, it: PlantItem) => {
+      const a = groups.get(name);
+      if (a) a.push(it);
+      else groups.set(name, [it]);
+    };
+    for (const c of planet.cells) {
+      if (c.biome === "tree" && c.emergent) {
+        add(pick(POOLS.hero, c.seed), plantItem(c, c.height * 1.5)); // 곧게 우뚝
+      } else if (c.biome === "tree") {
+        add(pick(POOLS.tree, c.seed), plantItem(c, c.height));
+      } else if (c.biome === "shrub") {
+        add(pick(POOLS.bush, c.seed), plantItem(c, c.height));
+      } else if (c.biome === "grass") {
+        add(pick(POOLS.grass, c.seed), plantItem(c, c.height));
+      } else if (c.biome === "bare" && jit(c.seed, 0.5) < 0.12) {
+        // 빈 날 일부에만 바위 흩뿌리기
+        add(pick(POOLS.rock, c.seed), plantItem(c, planet.radius * 0.08));
+      }
+    }
+    return [...groups.entries()];
+  }, [planet]);
+
+  return (
+    <>
+      {layers.map(([name, items]) => {
+        const sm = models.get(name);
+        return sm ? <ModelLayer key={name} submeshes={sm} items={items} /> : null;
+      })}
+    </>
+  );
 }
 
 export function Planet({
@@ -50,12 +130,11 @@ export function Planet({
   planet: PlanetModel;
   isMobile?: boolean;
 }) {
-  const ts = planet.cells[0]?.tileSize ?? planet.radius * 0.1;
-
-  // ── 변위 지형 + 고도색 (한 번만) ──
+  // ── 변위 지형 + 고도색 (로우폴리 각진 행성 — 에셋과 통일) ──
   const ground = useMemo(() => {
-    const seg = isMobile ? 64 : 96;
-    const g = new SphereGeometry(planet.radius, seg, seg);
+    // IcosahedronGeometry = 균일 삼각형 → 로우폴리 행성에 적합. detail 낮을수록 면이 큼.
+    const detail = isMobile ? 3 : 4;
+    const g = new IcosahedronGeometry(planet.radius, detail);
     const pos = g.attributes.position as BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
     const v = new Vector3();
@@ -69,7 +148,6 @@ export function Planet({
       const e = terrainElevation([v.x, v.y, v.z]);
       v.multiplyScalar(planet.radius + planet.relief * e);
       pos.setXYZ(i, v.x, v.y, v.z);
-      // 고도 밴드: 해변 → 풀 → 바위 → 설산
       tmp.copy(cBeach).lerp(cGrass, smoothstep(-0.1, 0.02, e));
       tmp.lerp(cRock, smoothstep(0.45, 0.65, e));
       tmp.lerp(cSnow, smoothstep(0.72, 0.92, e));
@@ -83,94 +161,11 @@ export function Planet({
     return g;
   }, [planet.radius, planet.relief, isMobile]);
 
-  // ── 나무 (줄기 + 수관) — emergent(거목)은 별도 그룹으로 빠짐 ──
-  const trees = useMemo(
-    () =>
-      planet.cells
-        .filter((c) => c.biome === "tree" && !c.emergent)
-        .map((c) => {
-          const { q, up, base } = plantFrame(c);
-          const h = c.height * (0.85 + 0.3 * jit(c.seed, 0.11));
-          const canopyR = c.height * 0.34 * (0.85 + 0.3 * jit(c.seed, 0.23));
-          const trunkH = h * 0.45;
-          const trunkPos = base.clone().add(up.clone().multiplyScalar(trunkH / 2));
-          const canopyPos = base
-            .clone()
-            .add(up.clone().multiplyScalar(trunkH + canopyR * 0.7));
-          // 윗 수관 lobe (풍성한 실루엣)
-          const lobeR = canopyR * 0.62;
-          const lobePos = base
-            .clone()
-            .add(up.clone().multiplyScalar(trunkH + canopyR * 1.25));
-          const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, trunkPos, canopyPos, canopyR, lobePos, lobeR, trunkH, col };
-        }),
-    [planet],
-  );
-
-  // ── 거목(emergent): 가장 바쁜 날들이 우뚝 솟음 (긴 줄기 + 적층 수관) ──
-  const giants = useMemo(
-    () =>
-      planet.cells
-        .filter((c) => c.emergent)
-        .map((c) => {
-          const { q, up, base } = plantFrame(c);
-          const h = c.height * (2.2 + 0.6 * jit(c.seed, 0.11)); // 우뚝
-          const trunkH = h * 0.5;
-          const canopyR = c.height * 0.5 * (0.9 + 0.2 * jit(c.seed, 0.23));
-          const trunkPos = base.clone().add(up.clone().multiplyScalar(trunkH / 2));
-          const canopyPos = base
-            .clone()
-            .add(up.clone().multiplyScalar(trunkH + canopyR * 0.6));
-          const topPos = base
-            .clone()
-            .add(up.clone().multiplyScalar(trunkH + canopyR * 1.5));
-          const col = new Color(c.color).multiplyScalar(0.9 + 0.2 * jit(c.seed, 0.53));
-          return { q, trunkPos, canopyPos, topPos, trunkH, canopyR, col };
-        }),
-    [planet],
-  );
-
-  // ── 덤불 ──
-  const shrubs = useMemo(
-    () =>
-      planet.cells
-        .filter((c) => c.biome === "shrub")
-        .map((c) => {
-          const { q, up, base } = plantFrame(c);
-          const r = c.height * 0.46 * (0.85 + 0.3 * jit(c.seed, 0.23));
-          const pos = base.clone().add(up.clone().multiplyScalar(r * 0.55));
-          const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, pos, r, col };
-        }),
-    [planet],
-  );
-
-  // ── 잔디 ──
-  const grass = useMemo(
-    () =>
-      planet.cells
-        .filter((c) => c.biome === "grass")
-        .map((c) => {
-          const { q, up, base } = plantFrame(c);
-          const h = c.height * (0.85 + 0.3 * jit(c.seed, 0.11));
-          const pos = base.clone().add(up.clone().multiplyScalar(h * 0.3));
-          const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, pos, h, col };
-        }),
-    [planet],
-  );
-
-  const atmoMat = useMemo(
-    () => createAtmosphereMaterial(planet.coreColor),
-    [planet.coreColor],
-  );
-
-  // ── 달 (절대 규모: moonCount개 궤도) ──
+  // ── 달 (절대 규모) ──
   const moons = useMemo(() => {
     const arr: { pos: Tuple3; size: number }[] = [];
     for (let i = 0; i < planet.moonCount; i++) {
-      const a = (i + 1) * 2.3999; // 황금각 비슷하게 분산
+      const a = (i + 1) * 2.3999;
       const orbitR = planet.radius * (1.9 + i * 0.38);
       const yTilt = Math.sin((i + 1) * 1.7) * 0.5;
       arr.push({
@@ -180,6 +175,11 @@ export function Planet({
     }
     return arr;
   }, [planet.moonCount, planet.radius]);
+
+  const atmoMat = useMemo(
+    () => createAtmosphereMaterial(planet.coreColor),
+    [planet.coreColor],
+  );
 
   const ringInner = planet.radius * 1.55;
   const ringOuter =
@@ -193,144 +193,10 @@ export function Planet({
         <sphereGeometry args={[planet.radius, 48, 48]} />
       </mesh>
 
-      {/* 변위 지형 (고도색) */}
+      {/* 변위 지형 (로우폴리 각진 면) */}
       <mesh geometry={ground} receiveShadow>
-        <meshStandardMaterial vertexColors roughness={0.92} metalness={0} />
+        <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
       </mesh>
-
-      {/* 나무 줄기 */}
-      {trees.length > 0 && (
-        <Instances limit={trees.length} range={trees.length} castShadow>
-          <cylinderGeometry args={[0.7, 1.0, 1, 6]} />
-          <meshStandardMaterial color="#5b3a26" roughness={0.85} metalness={0} />
-          {trees.map((t, i) => (
-            <Instance
-              key={i}
-              position={tup(t.trunkPos)}
-              quaternion={t.q}
-              scale={[ts * 0.16, t.trunkH, ts * 0.16]}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 나무 수관 */}
-      {trees.length > 0 && (
-        <Instances limit={trees.length} range={trees.length} castShadow>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial roughness={0.7} metalness={0} />
-          {trees.map((t, i) => (
-            <Instance
-              key={i}
-              position={tup(t.canopyPos)}
-              quaternion={t.q}
-              scale={[t.canopyR * 1.05, t.canopyR * 0.9, t.canopyR * 1.05]}
-              color={t.col}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 나무 윗 수관 lobe */}
-      {trees.length > 0 && (
-        <Instances limit={trees.length} range={trees.length} castShadow>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial roughness={0.7} metalness={0} />
-          {trees.map((t, i) => (
-            <Instance
-              key={i}
-              position={tup(t.lobePos)}
-              quaternion={t.q}
-              scale={[t.lobeR * 1.05, t.lobeR * 0.95, t.lobeR * 1.05]}
-              color={t.col}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 거목(emergent): 줄기 */}
-      {giants.length > 0 && (
-        <Instances limit={giants.length} range={giants.length} castShadow>
-          <cylinderGeometry args={[0.55, 0.9, 1, 7]} />
-          <meshStandardMaterial color="#5b3a26" roughness={0.85} metalness={0} />
-          {giants.map((t, i) => (
-            <Instance
-              key={i}
-              position={tup(t.trunkPos)}
-              quaternion={t.q}
-              scale={[ts * 0.3, t.trunkH, ts * 0.3]}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 거목: 큰 수관 (길쭉) */}
-      {giants.length > 0 && (
-        <Instances limit={giants.length} range={giants.length} castShadow>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial roughness={0.65} metalness={0} />
-          {giants.map((t, i) => (
-            <Instance
-              key={i}
-              position={tup(t.canopyPos)}
-              quaternion={t.q}
-              scale={[t.canopyR * 1.15, t.canopyR * 1.5, t.canopyR * 1.15]}
-              color={t.col}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 거목: 윗 spire */}
-      {giants.length > 0 && (
-        <Instances limit={giants.length} range={giants.length} castShadow>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial roughness={0.65} metalness={0} />
-          {giants.map((t, i) => (
-            <Instance
-              key={i}
-              position={tup(t.topPos)}
-              quaternion={t.q}
-              scale={[t.canopyR * 0.75, t.canopyR * 0.95, t.canopyR * 0.75]}
-              color={t.col}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 덤불 */}
-      {shrubs.length > 0 && (
-        <Instances limit={shrubs.length} range={shrubs.length} castShadow>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial roughness={0.75} metalness={0} />
-          {shrubs.map((s, i) => (
-            <Instance
-              key={i}
-              position={tup(s.pos)}
-              quaternion={s.q}
-              scale={[s.r * 1.2, s.r * 0.8, s.r * 1.2]}
-              color={s.col}
-            />
-          ))}
-        </Instances>
-      )}
-
-      {/* 잔디 */}
-      {grass.length > 0 && (
-        <Instances limit={grass.length} range={grass.length}>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial roughness={0.85} metalness={0} />
-          {grass.map((g, i) => (
-            <Instance
-              key={i}
-              position={tup(g.pos)}
-              quaternion={g.q}
-              scale={[ts * 1.25, g.h * 0.6, ts * 1.25]}
-              color={g.col}
-            />
-          ))}
-        </Instances>
-      )}
 
       {/* 토성형 고리 (followers 액센트) */}
       {planet.followers > 0 && (
@@ -346,13 +212,18 @@ export function Planet({
         </mesh>
       )}
 
-      {/* 달 (절대 규모) */}
+      {/* 달 */}
       {moons.map((m, i) => (
         <mesh key={i} position={m.pos} castShadow>
           <sphereGeometry args={[m.size, 16, 16]} />
           <meshStandardMaterial color="#9a958c" roughness={1} metalness={0} />
         </mesh>
       ))}
+
+      {/* 식생 — 진짜 CC0 모델 (로딩 동안 행성은 먼저 보임) */}
+      <Suspense fallback={null}>
+        <Vegetation planet={planet} />
+      </Suspense>
     </group>
   );
 }
