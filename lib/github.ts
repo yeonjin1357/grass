@@ -226,18 +226,21 @@ export async function fetchGrassData(
     errors?: GraphQLError[];
   };
 
-  const notFound =
-    json.data?.user == null ||
-    json.errors?.some((e) => e.type === "NOT_FOUND");
-  if (notFound) {
+  // 명시적 NOT_FOUND만 "없는 유저"(404). data.user===null 은 인증/레이트리밋 등으로도
+  // 생기므로 404로 뭉뚱그리지 말고 일반 에러로 surface한다.
+  if (json.errors?.some((e) => e.type === "NOT_FOUND")) {
     throw new GitHubUserNotFoundError(login);
   }
-
   if (json.errors && json.errors.length > 0) {
     throw new Error(
       `GitHub GraphQL error: ${json.errors.map((e) => e.message).join("; ")}`,
     );
   }
+  if (json.data?.user == null) {
+    throw new Error(
+      "GitHub이 user 데이터를 반환하지 않음 (토큰 인증 또는 일시 오류일 수 있음)",
+    );
+  }
 
-  return normalize(json.data!.user!);
+  return normalize(json.data.user);
 }

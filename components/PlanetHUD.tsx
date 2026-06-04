@@ -31,9 +31,8 @@ export function PlanetHUD({
       </div>
 
       <div className="hud-legend">
-        <span>🌱 적은 날 · 🌳 바쁜 날 · ✨ 가장 바쁜 날</span>
+        <span>🌱 적은 날 · 🌳 바쁜 날</span>
         <span>↕ 세로 = 시기 (위 ~1년 전 → 아래 최근)</span>
-        <span>🔍 나무에 마우스 = 그날 날짜·커밋수</span>
       </div>
     </>
   );

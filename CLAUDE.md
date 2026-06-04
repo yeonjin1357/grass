@@ -9,9 +9,9 @@ Claude Code가 이 저장소에서 작업할 때 매 세션 읽는 운영 매뉴
 ## 상태
 
 - **"자연스러운 살아있는 세계" 리디자인 완료 (2026-06-03).** Next.js 16 + R3F. 행성: **노이즈 변위 지형**(`terrainElevation`) + **진짜 나무(줄기+수관 blob)·덤불·잔디 인스턴싱**(seed 결정적 변주) + **전역 상위 6일만 발광 베리** + 프레넬 대기 + followers 고리 + 골든아워 라이팅 + plain 그림자 + 비네트 + 맥락 HUD. PNG 다운로드(`ShareBar`), 동적 OG, error/404.
-- **데이터 가독성 (2026-06-04):** 날짜 셔플 제거 → **위도 = 시기**(북극=~1년 전 → 남극=최근), 바쁜 시즌이 빽빽한 위도 띠로 보임. **호버 툴팁**(drei `<Html>`) = `날짜 · N contributions`. HUD 범례에 매핑 설명.
-- ⚠️ **검은 깜빡임(플리커) 원인 = `<EffectComposer>`(postprocessing) — 일부 GPU에서. v1 제거.** Bloom/Vignette 없음(베리는 밝은 점). 재도입은 `multisampling={0}`로 실기기 확인 후. `preserveDrawingBuffer`는 postprocessing 없을 때 안전 → 캡처용 복원.
-- 검증: vitest 13/13 · build 통과 · 헤드리스 육안(시간 띠 ✓ · 호버 `2025-07-27 · 5 contributions` ✓ · 캡처 복원 ✓) · 404/OG 유지.
+- **데이터 가독성 (2026-06-04):** 날짜 셔플 제거 → **위도 = 시기**(북극=~1년 전 → 남극=최근), 바쁜 시즌이 빽빽한 위도 띠로 보임. HUD 범례에 매핑 설명. (호버 툴팁·발광 베리는 시도했으나 사용자 요청으로 제거 — 단순함/가독성 우선.)
+- ⚠️ **검은 깜빡임(플리커) 원인 = `<EffectComposer>`(postprocessing) — 일부 GPU에서. v1 제거.** Bloom/Vignette 없음. 재도입은 `multisampling={0}`로 실기기 확인 후. `preserveDrawingBuffer`는 postprocessing 없을 때 안전 → 캡처용 복원.
+- 검증: vitest 13/13 · build 통과 · 헤드리스 육안(시간 띠 ✓ · 캡처 복원 ✓) · 404/OG 유지.
 - ⚠️ 헤드리스(SwiftShader)는 Environment IBL/SoftShadows/vertexColors 못 그려 회색 → 그 셋 제거(plain). 실 GPU에선 재추가 가능(실기기 확인 필수).
 - 다음(수동): README GIF + Vercel 배포.
 

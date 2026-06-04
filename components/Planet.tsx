@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Instances, Instance, Html } from "@react-three/drei";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useMemo } from "react";
+import { Instances, Instance } from "@react-three/drei";
 import {
   Vector3,
   Quaternion,
@@ -48,32 +47,6 @@ export function Planet({
 }) {
   const ts = planet.cells[0]?.tileSize ?? planet.radius * 0.1;
 
-  // ── 호버 툴팁(날짜+커밋수) ──
-  const [hover, setHover] = useState<{
-    date: string;
-    count: number;
-    tip: Tuple3;
-  } | null>(null);
-
-  const onMove =
-    (arr: { date: string; count: number; tip: Tuple3 }[]) =>
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-      const it = e.instanceId != null ? arr[e.instanceId] : undefined;
-      if (!it) return;
-      document.body.style.cursor = "pointer";
-      // 같은 식물 위 이동이면 재렌더 안 함(date 유일).
-      setHover((prev) =>
-        prev && prev.date === it.date
-          ? prev
-          : { date: it.date, count: it.count, tip: it.tip },
-      );
-    };
-  const onOut = () => {
-    setHover(null);
-    document.body.style.cursor = "auto";
-  };
-
   // ── 변위 지형 (한 번만) ──
   const ground = useMemo(() => {
     const seg = isMobile ? 64 : 96;
@@ -106,38 +79,10 @@ export function Planet({
             .clone()
             .add(up.clone().multiplyScalar(trunkH + canopyR * 0.7));
           const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return {
-            q,
-            trunkPos,
-            canopyPos,
-            trunkH,
-            canopyR,
-            col,
-            date: c.date,
-            count: c.count,
-            tip: tup(canopyPos),
-          };
+          return { q, trunkPos, canopyPos, trunkH, canopyR, col };
         }),
     [planet],
   );
-
-  // ── 발광 베리 (전역 상위 ~6일만 glow>0) ──
-  const berries = useMemo(() => {
-    const arr: { pos: Tuple3; size: number }[] = [];
-    for (const c of planet.cells) {
-      if (c.glow <= 0) continue;
-      const { up, base } = plantFrame(c);
-      const top = base.clone().add(up.clone().multiplyScalar(c.height));
-      for (let k = 0; k < 2; k++) {
-        const a = (c.seed + k * 0.31) * 6.2831 * 53.0;
-        const off = new Vector3(Math.sin(a), Math.cos(a * 1.7), Math.sin(a * 0.3))
-          .normalize()
-          .multiplyScalar(ts * 0.5);
-        arr.push({ pos: tup(top.clone().add(off)), size: ts * 0.22 });
-      }
-    }
-    return arr;
-  }, [planet, ts]);
 
   // ── 덤불 ──
   const shrubs = useMemo(
@@ -149,7 +94,7 @@ export function Planet({
           const r = c.height * 0.46 * (0.85 + 0.3 * jit(c.seed, 0.23));
           const pos = base.clone().add(up.clone().multiplyScalar(r * 0.55));
           const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, pos, r, col, date: c.date, count: c.count, tip: tup(pos) };
+          return { q, pos, r, col };
         }),
     [planet],
   );
@@ -164,7 +109,7 @@ export function Planet({
           const h = c.height * (0.85 + 0.3 * jit(c.seed, 0.11));
           const pos = base.clone().add(up.clone().multiplyScalar(h / 2));
           const col = new Color(c.color).multiplyScalar(0.85 + 0.3 * jit(c.seed, 0.53));
-          return { q, pos, h, col, date: c.date, count: c.count, tip: tup(pos) };
+          return { q, pos, h, col };
         }),
     [planet],
   );
@@ -209,13 +154,7 @@ export function Planet({
 
       {/* 나무 수관 */}
       {trees.length > 0 && (
-        <Instances
-          limit={trees.length}
-          range={trees.length}
-          castShadow
-          onPointerMove={onMove(trees)}
-          onPointerOut={onOut}
-        >
+        <Instances limit={trees.length} range={trees.length} castShadow>
           <icosahedronGeometry args={[1, 1]} />
           <meshStandardMaterial roughness={0.7} metalness={0} />
           {trees.map((t, i) => (
@@ -232,13 +171,7 @@ export function Planet({
 
       {/* 덤불 */}
       {shrubs.length > 0 && (
-        <Instances
-          limit={shrubs.length}
-          range={shrubs.length}
-          castShadow
-          onPointerMove={onMove(shrubs)}
-          onPointerOut={onOut}
-        >
+        <Instances limit={shrubs.length} range={shrubs.length} castShadow>
           <icosahedronGeometry args={[1, 1]} />
           <meshStandardMaterial roughness={0.75} metalness={0} />
           {shrubs.map((s, i) => (
@@ -255,12 +188,7 @@ export function Planet({
 
       {/* 잔디 */}
       {grass.length > 0 && (
-        <Instances
-          limit={grass.length}
-          range={grass.length}
-          onPointerMove={onMove(grass)}
-          onPointerOut={onOut}
-        >
+        <Instances limit={grass.length} range={grass.length}>
           <icosahedronGeometry args={[1, 0]} />
           <meshStandardMaterial roughness={0.85} metalness={0} />
           {grass.map((g, i) => (
@@ -271,17 +199,6 @@ export function Planet({
               scale={[ts * 0.9, g.h, ts * 0.6]}
               color={g.col}
             />
-          ))}
-        </Instances>
-      )}
-
-      {/* 발광 베리 (Bloom) */}
-      {berries.length > 0 && (
-        <Instances limit={berries.length} range={berries.length}>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshBasicMaterial color="#ffd86b" toneMapped={false} />
-          {berries.map((b, i) => (
-            <Instance key={i} position={b.pos} scale={b.size} />
           ))}
         </Instances>
       )}
@@ -300,25 +217,6 @@ export function Planet({
         </mesh>
       )}
 
-      {/* 호버 툴팁: 정확한 날짜 + 커밋수 */}
-      {hover && (
-        <Html position={hover.tip} center style={{ pointerEvents: "none" }} zIndexRange={[100, 0]}>
-          <div
-            style={{
-              transform: "translateY(-16px)",
-              background: "rgba(10,22,18,0.9)",
-              color: "#e8eaf0",
-              border: "1px solid rgba(255,255,255,0.12)",
-              padding: "4px 9px",
-              borderRadius: 8,
-              fontSize: 12,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {hover.date} · {hover.count} contribution{hover.count === 1 ? "" : "s"}
-          </div>
-        </Html>
-      )}
     </group>
   );
 }

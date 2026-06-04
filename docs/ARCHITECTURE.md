@@ -101,9 +101,7 @@ for (let i = 0; i < N; i++) {
 |---|---|---|
 | **날짜(연대순)** | **위도 = 시기** (북극=~1년 전 → 남극=최근). 셔플 금지 — 시간 클러스터링이 "언제 바빴나" 신호. 바쁜 시즌 = 빽빽한 위도 띠 | v1 |
 | `contributionDays[].contributionCount` | **식생 단계 높이** (sqrt 압축: 0=bare 지면, 저=잔디, 중=덤불, 고=나무) | v1 |
-| 호버(나무/덤불/잔디) | drei `<Html>` 툴팁 = `날짜 · N contributions` (정확한 언제/얼마나) | v1 |
 | count 비율 | 따뜻한 초록 캐노피 색(grass→shrub→tree 보간) | v1 |
-| **전역 상위 ~6일** | **골드 발광 베리** `#ffd86b` (Bloom은 GPU 플리커로 v1 제거 → 그냥 밝은 점) | v1 |
 | 주력 언어색 | **대기/고리 액센트만** (지면은 항상 초록 `#3f7d44`) | v1 |
 | `totalContributions` | 행성 반경 | v1 |
 | `followers`/`repositories.totalCount` | 토성 고리 두께 | v1 |

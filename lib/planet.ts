@@ -27,8 +27,6 @@ export interface PlanetCell {
   tileSize: number;
   /** 따뜻한 초록 캐노피 색(헥스). */
   color: string;
-  /** 0..1 블라썸 세기. tree 상단만 > 0. */
-  glow: number;
   biome: Biome;
   /** 0..1 결정적 시드 → 인스턴스 변주(높이/틸트/색/yaw). */
   seed: number;
@@ -50,7 +48,6 @@ export interface PlanetModel {
 
 const DEFAULT_ACCENT = "#3b82f6";
 const RELIEF_FRACTION = 0.13;
-const GLOW_TOP_N = 6; // 전역 상위 N일만 발광(베리 폭발 방지)
 
 const GRASS_LO = "#7bb661";
 const GRASS_HI = "#9fd85a";
@@ -167,15 +164,6 @@ export function buildPlanet(data: GrassData): PlanetModel {
   const relief = radius * RELIEF_FRACTION;
 
   const maxCount = days.reduce((m, d) => Math.max(m, d.contributionCount), 0);
-  // 발광은 "가장 바쁜 날"만 — 전역 상위 N일의 임계 count.
-  const sortedDesc = days
-    .map((d) => d.contributionCount)
-    .filter((c) => c > 0)
-    .sort((a, b) => b - a);
-  const glowThreshold =
-    sortedDesc.length === 0
-      ? Infinity
-      : sortedDesc[Math.min(GLOW_TOP_N - 1, sortedDesc.length - 1)];
 
   const tileSize =
     n > 0 ? Math.sqrt((4 * Math.PI * radius * radius) / n) * 0.55 : radius * 0.1;
@@ -204,10 +192,6 @@ export function buildPlanet(data: GrassData): PlanetModel {
     const surfaceRadius = radius + relief * terrainElevation(dir);
     const dist = surfaceRadius + height / 2;
     const position: Vec3 = [dir[0] * dist, dir[1] * dist, dir[2] * dist];
-    const glow =
-      day.contributionCount > 0 && day.contributionCount >= glowThreshold
-        ? Math.min(1, day.contributionCount / maxCount)
-        : 0;
     const seed = hash3(dir[0] * 12.9, dir[1] * 78.2, dir[2] * 37.7);
 
     return {
@@ -219,7 +203,6 @@ export function buildPlanet(data: GrassData): PlanetModel {
       height,
       tileSize,
       color,
-      glow,
       biome,
       seed,
     };
